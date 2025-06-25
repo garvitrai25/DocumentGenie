@@ -1,13 +1,44 @@
 export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    // Dynamic import to avoid initialization issues
-    const pdfParse = await import("pdf-parse").then(m => m.default || m);
-    const data = await pdfParse(buffer);
-    return data.text;
+    // Use a more robust PDF parsing approach
+    const pdfParse = require("pdf-parse");
+    const data = await pdfParse(buffer, {
+      // Options to improve extraction
+      max: 0, // Maximum number of pages to parse (0 = all pages)
+      version: 'v1.10.100' // Use stable version
+    });
+    
+    if (data.text && data.text.trim().length > 0) {
+      return data.text.trim();
+    } else {
+      // If no text extracted, it might be an image-based PDF
+      return `This PDF appears to contain primarily images or scanned content. Text extraction was not successful. Please ensure the PDF contains selectable text or consider using OCR processing for image-based documents.`;
+    }
   } catch (error) {
     console.error("PDF parsing error:", error);
-    // Fallback for development - return placeholder text
-    return `[PDF Content - ${buffer.length} bytes]\n\nThis is a PDF document that would normally be processed for text extraction. In a production environment, the actual PDF content would be extracted and displayed here.`;
+    
+    // Try alternative approach for problematic PDFs
+    try {
+      const pdfParse = require("pdf-parse");
+      const data = await pdfParse(buffer, {
+        normalizeWhitespace: false,
+        disableCombineTextItems: false
+      });
+      
+      if (data.text && data.text.trim().length > 0) {
+        return data.text.trim();
+      }
+    } catch (secondError) {
+      console.error("Secondary PDF parsing also failed:", secondError);
+    }
+    
+    return `Unable to extract text from this PDF file. This could be due to:
+1. The PDF contains only images/scanned content (requires OCR)
+2. The PDF is password protected
+3. The PDF format is not supported
+4. The file may be corrupted
+
+Please try uploading a text-based PDF or a .txt file instead.`;
   }
 }
 
