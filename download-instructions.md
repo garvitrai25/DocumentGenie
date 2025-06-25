@@ -1,68 +1,47 @@
-# How to Download Your AI Document Analysis Platform
+# Download Instructions for Local Setup
 
-## Method 1: Download as ZIP (Recommended)
+## Important Security Note
+Your .env file contains sensitive credentials and should never be shared or exposed. Here's how to safely get your environment setup for local development:
 
-1. **In Replit**: Click the three dots menu (⋯) in the file explorer
-2. **Select "Download as ZIP"** - this will download the entire project
-3. **Extract the ZIP file** on your computer
+## Option 1: Download from Replit (Recommended)
+1. In your Replit project, go to the file browser
+2. Click the three dots menu (⋯) next to your project name
+3. Select "Download as zip"
+4. Extract the zip file on your local machine
+5. The .env file is already configured with your secrets
 
-## Method 2: Clone with Git
+## Option 2: Manual Setup
+If you need to recreate the .env file manually:
 
-1. **Get the Git URL**: In Replit, go to the Version Control tab and copy the repository URL
-2. **Clone locally**: Run `git clone <repository-url>` on your local machine
+### Database Configuration
+Your PostgreSQL database is already running on Replit. For local development, you'll need to:
+1. Set up a local PostgreSQL instance, OR
+2. Use the Replit database remotely (requires network access)
 
-## Setting Up Locally
+### Required Environment Variables
+Check the `.env.example` file I created for the structure. You'll need:
 
-After downloading, you'll need to:
+- **Database**: PostgreSQL connection string
+- **Gemini API**: Your Google AI API key
+- **Firebase**: Project configuration for auth and storage
 
-### 1. Install Dependencies
-```bash
-npm install
-```
+### Firebase Setup
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Access your project: `omara-fa9ee`
+3. Get your web app configuration from Project Settings
+4. For server-side: Generate a new service account key
 
-### 2. Set Up Environment Variables
-Create a `.env` file in the root directory with:
-```
-GEMINI_API_KEY=your_gemini_api_key
-VITE_FIREBASE_API_KEY=your_firebase_api_key
-VITE_FIREBASE_APP_ID=your_firebase_app_id
-VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
-```
+## Current Status
+Your Replit environment already has all secrets configured. The application is fully functional with:
+- PostgreSQL database with persistent storage
+- Firebase authentication and file storage
+- Gemini AI integration for document analysis
+- Improved PDF text extraction
 
-### 3. Configure Firebase (for production)
-- Set up Firebase Admin SDK credentials
-- Configure Firebase Storage bucket
-- Update server/services/firebase.ts with proper admin credentials
+## Security Best Practices
+- Never commit .env files to version control
+- Use different API keys for development/production
+- Rotate keys periodically
+- Restrict API key permissions where possible
 
-### 4. Run the Application
-```bash
-npm run dev
-```
-
-## Project Structure
-
-- `client/` - React frontend application
-- `server/` - Express.js backend API
-- `shared/` - Shared TypeScript types and schemas
-- `components.json` - ShadCN UI configuration
-- `package.json` - Dependencies and scripts
-
-## Technologies Used
-
-- **Frontend**: React, TypeScript, Tailwind CSS, ShadCN UI
-- **Backend**: Express.js, Node.js
-- **Authentication**: Firebase Auth
-- **AI**: Google Gemini API
-- **File Processing**: PDF parsing, text chunking
-- **Build Tools**: Vite, ESBuild
-
-## Next Steps for Production
-
-1. Set up proper Firebase Admin SDK with service account
-2. Configure PostgreSQL database (replace in-memory storage)
-3. Set up file storage (Firebase Storage or cloud provider)
-4. Add proper error handling and logging
-5. Implement rate limiting and security measures
-6. Deploy frontend and backend separately
-
-Your Strategic Insight platform is fully functional and ready for further development!
+Your AI document analysis platform is ready for deployment or local development!
