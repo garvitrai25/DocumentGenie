@@ -40,118 +40,103 @@ export interface IStorage {
   getChatMessages(sessionId: number): Promise<ChatMessage[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User> = new Map();
-  private documents: Map<number, Document> = new Map();
-  private documentChunks: Map<number, DocumentChunk> = new Map();
-  private chatSessions: Map<number, ChatSession> = new Map();
-  private chatMessages: Map<number, ChatMessage> = new Map();
-  
-  private userIdCounter = 1;
-  private documentIdCounter = 1;
-  private chunkIdCounter = 1;
-  private sessionIdCounter = 1;
-  private messageIdCounter = 1;
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
+export class DatabaseStorage implements IStorage {
   async getUserByFirebaseUid(firebaseUid: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.firebaseUid === firebaseUid);
+    const [user] = await db.select().from(users).where(eq(users.firebaseUid, firebaseUid));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const user: User = {
-      ...insertUser,
-      id: this.userIdCounter++,
-      displayName: insertUser.displayName || null,
-      createdAt: new Date(),
-    };
-    this.users.set(user.id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async createDocument(insertDocument: InsertDocument): Promise<Document> {
-    const document: Document = {
-      ...insertDocument,
-      id: this.documentIdCounter++,
-      extractedText: insertDocument.extractedText || null,
-      processingStatus: insertDocument.processingStatus || "pending",
-      uploadedAt: new Date(),
-    };
-    this.documents.set(document.id, document);
+    const [document] = await db
+      .insert(documents)
+      .values(insertDocument)
+      .returning();
     return document;
   }
 
   async getDocumentsByUserId(userId: number): Promise<Document[]> {
-    return Array.from(this.documents.values()).filter(doc => doc.userId === userId);
+    return await db.select().from(documents).where(eq(documents.userId, userId));
   }
 
   async getDocumentById(id: number): Promise<Document | undefined> {
-    return this.documents.get(id);
+    const [document] = await db.select().from(documents).where(eq(documents.id, id));
+    return document || undefined;
   }
 
   async updateDocumentStatus(id: number, status: string, extractedText?: string): Promise<void> {
-    const document = this.documents.get(id);
-    if (document) {
-      const updated = { ...document, processingStatus: status };
-      if (extractedText) {
-        updated.extractedText = extractedText;
-      }
-      this.documents.set(id, updated);
+    const updateData: any = { processingStatus: status };
+    if (extractedText) {
+      updateData.extractedText = extractedText;
     }
+    
+    await db
+      .update(documents)
+      .set(updateData)
+      .where(eq(documents.id, id));
   }
 
   async deleteDocument(id: number): Promise<void> {
-    this.documents.delete(id);
-    // Clean up related chunks
-    const chunks = Array.from(this.documentChunks.values()).filter(chunk => chunk.documentId === id);
-    chunks.forEach(chunk => this.documentChunks.delete(chunk.id));
+    // Delete related chunks first
+    await db.delete(documentChunks).where(eq(documentChunks.documentId, id));
+    // Delete the document
+    await db.delete(documents).where(eq(documents.id, id));
   }
 
   async createDocumentChunks(insertChunks: InsertDocumentChunk[]): Promise<DocumentChunk[]> {
-    const chunks: DocumentChunk[] = insertChunks.map(chunk => ({
-      ...chunk,
-      id: this.chunkIdCounter++,
-    }));
-    chunks.forEach(chunk => this.documentChunks.set(chunk.id, chunk));
+    const chunks = await db
+      .insert(documentChunks)
+      .values(insertChunks)
+      .returning();
     return chunks;
   }
 
   async getDocumentChunks(documentId: number): Promise<DocumentChunk[]> {
-    return Array.from(this.documentChunks.values()).filter(chunk => chunk.documentId === documentId);
+    return await db.select().from(documentChunks).where(eq(documentChunks.documentId, documentId));
   }
 
   async createChatSession(insertSession: InsertChatSession): Promise<ChatSession> {
-    const session: ChatSession = {
-      ...insertSession,
-      id: this.sessionIdCounter++,
-      createdAt: new Date(),
-    };
-    this.chatSessions.set(session.id, session);
+    const [session] = await db
+      .insert(chatSessions)
+      .values(insertSession)
+      .returning();
     return session;
   }
 
   async getChatSessionsByUserId(userId: number): Promise<ChatSession[]> {
-    return Array.from(this.chatSessions.values()).filter(session => session.userId === userId);
+    return await db.select().from(chatSessions).where(eq(chatSessions.userId, userId));
   }
 
   async getChatSession(id: number): Promise<ChatSession | undefined> {
-    return this.chatSessions.get(id);
+    const [session] = await db.select().from(chatSessions).where(eq(chatSessions.id, id));
+    return session || undefined;
   }
 
   async createChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
-    const message: ChatMessage = {
-      ...insertMessage,
-      id: this.messageIdCounter++,
-      timestamp: new Date(),
-    };
-    this.chatMessages.set(message.id, message);
+    const [message] = await db
+      .insert(chatMessages)
+      .values(insertMessage)
+      .returning();
     return message;
   }
 
   async getChatMessages(sessionId: number): Promise<ChatMessage[]> {
-    return Array.from(this.chatMessages.values())
-      .filter(message => message.sessionId === sessionId)
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    return await db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.sessionId, sessionId))
+      .orderBy(chatMessages.timestamp);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
