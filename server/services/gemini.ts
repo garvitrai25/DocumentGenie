@@ -8,8 +8,6 @@ export async function generateChatResponse(
   chatHistory: Array<{ role: string; content: string }>
 ): Promise<string> {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
     // Prepare context from document chunks
     const context = documentChunks.length > 0 
       ? `Based on the following document content:\n\n${documentChunks.join("\n\n")}\n\n`
@@ -23,6 +21,11 @@ export async function generateChatResponse(
     const prompt = `${historyContext}${context}User question: ${userQuery}
 
 Please provide a helpful and accurate response based on the document content provided. If the question cannot be answered from the document content, politely explain that the information is not available in the provided documents.`;
+
+    const response = await genAI.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
 
     return response.text || "I apologize, but I couldn't generate a response. Please try again.";
   } catch (error) {
