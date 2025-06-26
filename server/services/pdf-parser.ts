@@ -1,17 +1,22 @@
 export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    // Use a more robust PDF parsing approach
-    const pdfParse = require("pdf-parse");
+    // Dynamic import for ES modules compatibility
+    const pdfParse = await import("pdf-parse").then(m => m.default || m);
+    
     const data = await pdfParse(buffer, {
       // Options to improve extraction
       max: 0, // Maximum number of pages to parse (0 = all pages)
-      version: 'v1.10.100' // Use stable version
+      normalizeWhitespace: true,
+      disableCombineTextItems: false
     });
     
     if (data.text && data.text.trim().length > 0) {
-      return data.text.trim();
+      const extractedText = data.text.trim();
+      console.log(`PDF parsing successful: ${extractedText.length} characters extracted`);
+      return extractedText;
     } else {
       // If no text extracted, it might be an image-based PDF
+      console.log("PDF parsing: No text content found");
       return `This PDF appears to contain primarily images or scanned content. Text extraction was not successful. Please ensure the PDF contains selectable text or consider using OCR processing for image-based documents.`;
     }
   } catch (error) {
@@ -19,14 +24,16 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     
     // Try alternative approach for problematic PDFs
     try {
-      const pdfParse = require("pdf-parse");
+      const pdfParse = await import("pdf-parse").then(m => m.default || m);
       const data = await pdfParse(buffer, {
         normalizeWhitespace: false,
-        disableCombineTextItems: false
+        disableCombineTextItems: true
       });
       
       if (data.text && data.text.trim().length > 0) {
-        return data.text.trim();
+        const extractedText = data.text.trim();
+        console.log(`PDF parsing (fallback) successful: ${extractedText.length} characters extracted`);
+        return extractedText;
       }
     } catch (secondError) {
       console.error("Secondary PDF parsing also failed:", secondError);
