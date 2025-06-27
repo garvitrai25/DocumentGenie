@@ -1,34 +1,34 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
 export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    // Dynamic import for ES modules compatibility
-    const pdfParse = await import("pdf-parse").then(m => m.default || m);
+    console.log(`Attempting to parse PDF: ${buffer.length} bytes`);
     
-    const data = await pdfParse(buffer, {
-      // Options to improve extraction
-      max: 0, // Maximum number of pages to parse (0 = all pages)
-      normalizeWhitespace: true,
-      disableCombineTextItems: false
+    // Use require with createRequire for CommonJS in ES module
+    const pdfParseLib = require("pdf-parse/lib/pdf-parse.js");
+    
+    const data = await pdfParseLib(buffer, {
+      max: 0 // Maximum number of pages to parse (0 = all pages)
     });
     
     if (data.text && data.text.trim().length > 0) {
       const extractedText = data.text.trim();
       console.log(`PDF parsing successful: ${extractedText.length} characters extracted`);
+      console.log(`First 200 characters: ${extractedText.substring(0, 200)}...`);
       return extractedText;
     } else {
-      // If no text extracted, it might be an image-based PDF
       console.log("PDF parsing: No text content found");
       return `This PDF appears to contain primarily images or scanned content. Text extraction was not successful. Please ensure the PDF contains selectable text or consider using OCR processing for image-based documents.`;
     }
   } catch (error) {
     console.error("PDF parsing error:", error);
     
-    // Try alternative approach for problematic PDFs
+    // Try alternative approach with minimal options
     try {
-      const pdfParse = await import("pdf-parse").then(m => m.default || m);
-      const data = await pdfParse(buffer, {
-        normalizeWhitespace: false,
-        disableCombineTextItems: true
-      });
+      console.log("Attempting fallback PDF parsing...");
+      const pdfParseLib = require("pdf-parse/lib/pdf-parse.js");
+      const data = await pdfParseLib(buffer);
       
       if (data.text && data.text.trim().length > 0) {
         const extractedText = data.text.trim();
@@ -41,7 +41,7 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
     
     return `Unable to extract text from this PDF file. This could be due to:
 1. The PDF contains only images/scanned content (requires OCR)
-2. The PDF is password protected
+2. The PDF is password protected  
 3. The PDF format is not supported
 4. The file may be corrupted
 

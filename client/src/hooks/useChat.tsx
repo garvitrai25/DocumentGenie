@@ -17,8 +17,15 @@ async function createChatSession(documentId: number): Promise<ChatSession> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to create chat session");
+    let message = "Failed to create chat session";
+    try {
+      const error = await response.json();
+      message = error.message || message;
+    } catch (_) {
+      const fallback = await response.text();
+      message = fallback || message;
+    }
+    throw new Error(message);
   }
 
   return response.json();
@@ -36,13 +43,24 @@ async function fetchChatMessages(sessionId: number): Promise<ChatMessage[]> {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch chat messages");
+    let message = "Failed to fetch chat messages";
+    try {
+      const error = await response.json();
+      message = error.message || message;
+    } catch (_) {
+      const fallback = await response.text();
+      message = fallback || message;
+    }
+    throw new Error(message);
   }
 
   return response.json();
 }
 
-async function sendMessage(sessionId: number, content: string): Promise<{ userMessage: ChatMessage; aiMessage: ChatMessage }> {
+async function sendMessage(
+  sessionId: number,
+  content: string
+): Promise<{ userMessage: ChatMessage; aiMessage: ChatMessage }> {
   const token = await getIdToken();
   if (!token) throw new Error("No authentication token");
 
@@ -57,8 +75,15 @@ async function sendMessage(sessionId: number, content: string): Promise<{ userMe
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to send message");
+    let message = "Failed to send message";
+    try {
+      const error = await response.json();
+      message = error.message || message;
+    } catch (_) {
+      const fallback = await response.text();
+      message = fallback || message;
+    }
+    throw new Error(message);
   }
 
   return response.json();
@@ -76,22 +101,26 @@ export function useCreateChatSession() {
 }
 
 export function useChatMessages(sessionId: number | null) {
-  return useQuery({
+  return useQuery<ChatMessage[], Error>({
     queryKey: ["/api/chat/sessions", sessionId, "messages"],
     queryFn: () => fetchChatMessages(sessionId!),
     enabled: !!sessionId,
+    onError(error) {
+      console.error("Chat fetch error:", error);
+    },
   });
 }
+
 
 export function useSendMessage() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ sessionId, content }: { sessionId: number; content: string }) => 
+    mutationFn: ({ sessionId, content }: { sessionId: number; content: string }) =>
       sendMessage(sessionId, content),
     onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/chat/sessions", variables.sessionId, "messages"] 
+      queryClient.invalidateQueries({
+        queryKey: ["/api/chat/sessions", variables.sessionId, "messages"],
       });
     },
   });

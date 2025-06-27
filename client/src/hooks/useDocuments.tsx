@@ -1,5 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { getIdToken } from "@/lib/firebase";
 import type { Document } from "@shared/schema";
 
@@ -15,7 +14,15 @@ async function fetchDocuments(): Promise<Document[]> {
   });
 
   if (!response.ok) {
-    throw new Error("Failed to fetch documents");
+    let message = "Failed to fetch documents";
+    try {
+      const error = await response.json();
+      message = error.message || message;
+    } catch (_) {
+      const fallback = await response.text();
+      message = fallback || message;
+    }
+    throw new Error(message);
   }
 
   return response.json();
@@ -38,8 +45,15 @@ async function uploadDocument(file: File): Promise<Document> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to upload document");
+    let message = "Failed to upload document";
+    try {
+      const error = await response.json();
+      message = error.message || message;
+    } catch (_) {
+      const fallback = await response.text();
+      message = fallback || message;
+    }
+    throw new Error(message);
   }
 
   return response.json();
@@ -58,8 +72,15 @@ async function deleteDocument(documentId: number): Promise<void> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to delete document");
+    let message = "Failed to delete document";
+    try {
+      const error = await response.json();
+      message = error.message || message;
+    } catch (_) {
+      const fallback = await response.text();
+      message = fallback || message;
+    }
+    throw new Error(message);
   }
 }
 
